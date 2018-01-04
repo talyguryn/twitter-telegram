@@ -46,11 +46,15 @@ stream.on('data', function(event) {
 
 
     try {
-        let image = event.truncated ? event.extended_tweet.extended_entities.media[0].media_url_https : event.entities.media[0].media_url_https;
+        let image = event.truncated ? event.extended_tweet.extended_entities.media[0] : event.entities.media[0];
 
-        message = '[⁠](' + image + ')' + message;
+        console.log(image);
+        let image_media_url = image.media_url_https;
+        let image_url = image.url;
+
+        message = '[⁠](' + image_media_url + ')' + message;
         disable_preview = false;
-        tweet_text = tweet_text.replace(/https:\/\/t\.co\S+/i,"");
+        message = message.replace(image_url, "");
     } catch(err) {
         console.log(err);
     }
