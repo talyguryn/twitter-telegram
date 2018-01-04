@@ -14,7 +14,7 @@ let telegram_send_message = function (chat, text, disable_preview = false) {
     ).form({
         chat_id: chat,
         text: text,
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         disable_web_page_preview: disable_preview
     });
 };
@@ -29,35 +29,39 @@ stream.on('data', function(event) {
 
     let disable_preview = true;
 
+    let username = event.user.screen_name,
+        link = 'https://twitter.com/' + username + '/status/' + event.id_str,
+        message = '<a href="' + link + '">' + event.user.name + '</a>: ' + tweet_text;
+
     try {
-        let urls = event.truncated ? event.extended_tweet.extended_entities.urls : event.entities.urls;
+        console.log(event.extended_tweet);
+        let urls = event.truncated ? event.extended_tweet.entities.urls : event.entities.urls;
 
         urls.forEach(function(link){
-            tweet_text = tweet_text.replace(link.url, link.expanded_url);
+            message = message.replace(link.url, link.expanded_url);
         });
-        // disable_preview = false;
+
+        console.log(urls[0]);
+        message = '<a href="' + urls[0].expanded_url + '">⁠</a>' + message;
+        disable_preview = false;
     } catch(err) {
         console.log(err);
     }
 
-    let username = event.user.screen_name,
-        link = 'https://twitter.com/' + username + '/status/' + event.id_str,
-        message = '[' + event.user.name + '](' + link + '): ' + tweet_text;
-
-
     try {
-        let image = event.truncated ? event.extended_tweet.extended_entities.media[0] : event.entities.media[0];
+        let image = event.truncated ? event.extended_tweet.entities.media[0] : event.entities.media[0];
 
         console.log(image);
         let image_media_url = image.media_url_https;
         let image_url = image.url;
 
-        message = '[⁠](' + image_media_url + ')' + message;
+        message = '<a href="' + image_media_url + '">⁠</a>' + message.replace(image_url, "");
         disable_preview = false;
-        message = message.replace(image_url, "");
     } catch(err) {
         console.log(err);
     }
+
+
 
     if (username in config.telegram.users) {
         try {
