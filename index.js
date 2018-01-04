@@ -23,23 +23,34 @@ let telegram_send_message = function (chat, text, disable_preview = false) {
 let stream = client.stream('user', {tweet_mode: 'extended', include_entities: true});
 // var stream = client.stream('statuses/filter', {track: 'apple'});
 stream.on('data', function(event) {
-    // console.log(event);
+    console.log(event.entities.urls);
 
     let tweet_text = event.truncated ? event.extended_tweet.full_text : event.text;
 
-    tweet_text = tweet_text.replace(/https:\/\/t\.co\S+/i,"");
+    let disable_preview = true;
+
+    try {
+        let urls = event.truncated ? event.extended_tweet.extended_entities.urls : event.entities.urls;
+
+        urls.forEach(function(link){
+            tweet_text = tweet_text.replace(link.url, link.expanded_url);
+        });
+        // disable_preview = false;
+    } catch(err) {
+        console.log(err);
+    }
 
     let username = event.user.screen_name,
         link = 'https://twitter.com/' + username + '/status/' + event.id_str,
         message = '[' + event.user.name + '](' + link + '): ' + tweet_text;
 
-    let disable_preview = true;
 
     try {
         let image = event.truncated ? event.extended_tweet.extended_entities.media[0].media_url_https : event.entities.media[0].media_url_https;
 
         message = '[⁠](' + image + ')' + message;
         disable_preview = false;
+        tweet_text = tweet_text.replace(/https:\/\/t\.co\S+/i,"");
     } catch(err) {
         console.log(err);
     }
