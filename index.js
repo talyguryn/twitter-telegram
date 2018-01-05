@@ -21,10 +21,9 @@ let telegram_send_message = function (chat, text, disable_preview = false) {
 
 
 let stream = client.stream('user', {tweet_mode: 'extended', include_entities: true});
-// var stream = client.stream('statuses/filter', {track: 'apple'});
+
 stream.on('data', function(event) {
     try {
-        console.log(event.entities.urls);
 
         let tweet_text = event.truncated ? event.extended_tweet.full_text : event.text;
 
@@ -34,35 +33,34 @@ stream.on('data', function(event) {
             link = 'https://twitter.com/' + username + '/status/' + event.id_str,
             message = '<a href="' + link + '">' + event.user.name + '</a>: ' + tweet_text;
 
+        // Unwrap t.co links
         try {
-            console.log(event.extended_tweet);
             let urls = event.truncated ? event.extended_tweet.entities.urls : event.entities.urls;
 
             urls.forEach(function (link) {
                 message = message.replace(link.url, link.expanded_url);
             });
 
-            console.log(urls[0]);
+            // Get preview for the  first link
             message = '<a href="' + urls[0].expanded_url + '">⁠</a>' + message;
             disable_preview = false;
         } catch (err) {
-            console.log(err);
+            //console.log(err);
         }
 
+        // Get first image and set as preview
         try {
-            let image = event.truncated ? event.extended_tweet.entities.media[0] : event.entities.media[0];
-
-            console.log(image);
-            let image_media_url = image.media_url_https;
-            let image_url = image.url;
+            let image = event.truncated ? event.extended_tweet.entities.media[0] : event.entities.media[0],
+                image_media_url = image.media_url_https,
+                image_url = image.url;
 
             message = '<a href="' + image_media_url + '">⁠</a>' + message.replace(image_url, "");
             disable_preview = false;
         } catch (err) {
-            console.log(err);
+            //console.log(err);
         }
 
-
+        // Send notify
         if (username in config.telegram.users) {
             try {
                 let chats = config.telegram.users[username];
@@ -72,7 +70,7 @@ stream.on('data', function(event) {
                         let chat_id = config.telegram.chats[chat];
                         telegram_send_message(chat_id, message, disable_preview);
                     } catch (err) {
-                        console.log(err);
+                        console.log('Can\'t send message because of ', err);
                     }
                 });
             } catch (err) {
@@ -82,7 +80,6 @@ stream.on('data', function(event) {
             telegram_send_message(config.telegram.chats['me'], message, disable_preview);
         }
 
-        // console.log(message);
     } catch (err) {
         console.log(err);
         codex_bot_notify('TwitterBot Error: ' + err);
