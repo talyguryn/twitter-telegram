@@ -9,7 +9,7 @@ let codex_bot_notify = function (text) {
 };
 
 let telegram_send_message = function (chat, text, disable_preview = false) {
-    request.post(
+    let x = request.post(
         'https://api.telegram.org/bot' + config.telegram.bot_token + '/sendMessage'
     ).form({
         chat_id: chat,
@@ -19,19 +19,39 @@ let telegram_send_message = function (chat, text, disable_preview = false) {
     });
 };
 
-
 let stream = client.stream('user', {tweet_mode: 'extended', include_entities: true});
 
 stream.on('data', function(event) {
     try {
 
-        let tweet_text = event.truncated ? event.extended_tweet.full_text : event.text;
+        console.log(event);
+
+        let message = event.truncated ? event.extended_tweet.full_text : event.text,
+            source = event.user.screen_name;
+
+        try {
+            let retweet = event.retweeted_status;
+
+            message = retweet.truncated ? retweet.extended_tweet.full_text : retweet.text;
+
+            let username = event.user.screen_name,
+                link = 'https://twitter.com/' + username + '/status/' + event.id_str,
+                rt_source = event.retweeted_status.user.screen_name,
+                rt_link = 'https://twitter.com/' + rt_source + '/status/' + event.retweeted_status.id_str;
+
+            message = '<a href="' + link + '">' + event.user.name + '</a> RT <a href="' + rt_link + '">' + event.retweeted_status.user.name + '</a>: ' + message;
+
+            event = event.retweeted_status;
+        } catch (err) {
+
+            let username = event.user.screen_name,
+                link = 'https://twitter.com/' + username + '/status/' + event.id_str;
+
+            message = '<a href="' + link + '">' + event.user.name + '</a>: ' + message;
+
+        }
 
         let disable_preview = true;
-
-        let username = event.user.screen_name,
-            link = 'https://twitter.com/' + username + '/status/' + event.id_str,
-            message = '<a href="' + link + '">' + event.user.name + '</a>: ' + tweet_text;
 
         // Unwrap t.co links
         try {
@@ -60,10 +80,25 @@ stream.on('data', function(event) {
             //console.log(err);
         }
 
+        
+        // try to attach video
+        try {
+            let media = event.extended_tweet.extended_entities.media[0] || event.extended_entities.media[0] || event.entities.media[0],
+                video = media.video_info;
+
+            let link = video.variants[0].url;
+
+            message = '<a href="' + link + '">⁠</a>' + message;
+            disable_preview = false;
+
+        } catch (err) {
+            console.log(err);
+        }
+
         // Send notify
-        if (username in config.telegram.users) {
+        if (source in config.telegram.users) {
             try {
-                let chats = config.telegram.users[username];
+                let chats = config.telegram.users[source];
                 console.log(chats);
                 chats.forEach(function (chat) {
                     try {
