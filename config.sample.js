@@ -19,6 +19,8 @@ module.exports = {
         users: {
             mudakoff: ['workgroup', 'me'],
             meduzaproject: ['workgroup']
-        }
+        },
+
+        ignore: ['someone'],
     },
 }

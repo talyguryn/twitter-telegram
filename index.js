@@ -29,6 +29,10 @@ stream.on('data', function(event) {
         let message = event.truncated ? event.extended_tweet.full_text : event.text,
             source = event.user.screen_name;
 
+        if (config.telegram.ignore.includes(source)) {
+            return;
+        }
+
         try {
             let retweet = event.retweeted_status;
 
@@ -80,7 +84,7 @@ stream.on('data', function(event) {
             //console.log(err);
         }
 
-        
+
         // try to attach video
         try {
             let media = event.extended_tweet.extended_entities.media[0] || event.extended_entities.media[0] || event.entities.media[0],
